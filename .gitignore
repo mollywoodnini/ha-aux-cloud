@@ -12,3 +12,5 @@ pipfile.lock
 /venv
 /config
 custom_components/aux_cloud/config/
+
+.opencode/node_modules
