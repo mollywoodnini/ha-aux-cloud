@@ -31,7 +31,8 @@
         "description": "Επιλέξτε τρόπο σύνδεσης. Το email συνιστάται για ευρωπαϊκούς λογαριασμούς.",
         "menu_options": {
           "email": "Διεύθυνση email",
-          "phone": "Αριθμός τηλεφώνου"
+          "phone": "Αριθμός τηλεφώνου",
+          "aux_home": "Εφαρμογή AUX HOME (Ευρώπη)"
         }
       },
       "email": {
@@ -50,6 +51,14 @@
           "phone_number": "Αριθμός τηλεφώνου",
           "password": "Κωδικός πρόσβασης",
           "region": "Περιοχή"
+        }
+      },
+      "aux_home": {
+        "title": "Σύνδεση στο AUX HOME",
+        "description": "Χρησιμοποιήστε το email και τον κωδικό του λογαριασμού σας στην εφαρμογή AUX HOME. Προς το παρόν υποστηρίζεται μόνο η Ευρώπη. Εισάγετε το email ακριβώς όπως καταχωρήθηκε, με τα κεφαλαία γράμματα.",
+        "data": {
+          "email": "Διεύθυνση email",
+          "password": "Κωδικός πρόσβασης"
         }
       },
       "reauth_confirm": {
@@ -126,6 +135,12 @@
       },
       "ac_temperature": {
         "name": "Θερμοκρασία Κλιματιστικού"
+      },
+      "ambient_humidity": {
+        "name": "Υγρασία περιβάλλοντος"
+      },
+      "filter_usage": {
+        "name": "Χρήση φίλτρου"
       }
     },
     "water_heater": {
@@ -168,6 +183,14 @@
           "level_7": "Ρύθμιση 7",
           "level_8": "Ρύθμιση 8",
           "user_defined": "Καθορισμένο από τον χρήστη"
+        }
+      },
+      "aux_select_dehumidifier_fan": {
+        "name": "Ταχύτητα ανεμιστήρα",
+        "state": {
+          "low": "Χαμηλή",
+          "medium": "Μεσαία",
+          "high": "Υψηλή"
         }
       }
     },
@@ -218,6 +241,20 @@
     "number": {
       "aux_power_limit_percentage": {
         "name": "Ποσοστό Περιορισμού Ισχύος"
+      }
+    },
+    "humidifier": {
+      "aux_dehumidifier": {
+        "state_attributes": {
+          "mode": {
+            "name": "Λειτουργία",
+            "state": {
+              "continuous": "Συνεχής",
+              "manual": "Χειροκίνητη",
+              "drying": "Στέγνωμα"
+            }
+          }
+        }
       }
     }
   }

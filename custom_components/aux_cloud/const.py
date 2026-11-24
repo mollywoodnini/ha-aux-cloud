@@ -33,6 +33,12 @@ CONF_FAMILIES = "families"
 CONF_SELECTED_DEVICES = "selected_devices"
 CONF_PHONE_NUMBER = "phone_number"
 CONF_ACCOUNT_ID = "account_id"
+CONF_BACKEND = "backend"
+
+# Cloud backends. Entries created before AUX HOME support have no backend key and
+# are BroadLink DNA (AC Freedom / AUX Cloud) entries.
+BACKEND_DNA = "dna"
+BACKEND_AUX_HOME = "aux_home"
 
 # Map AUX AC modes to Home Assistant HVAC modes
 MODE_MAP_AUX_AC_TO_HA = {
@@ -70,6 +76,7 @@ PLATFORMS = [
     Platform.SELECT,
     Platform.SWITCH,
     Platform.NUMBER,
+    Platform.HUMIDIFIER,
 ]
 
 MAX_FAILED_POLLS = 5

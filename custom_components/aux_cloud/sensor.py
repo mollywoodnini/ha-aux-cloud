@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -22,6 +22,8 @@ from .devices import (
     AC_TEMPERATURE_AMBIENT,
     AC_TEMPERATURE_TARGET,
     AUX_ERROR_FLAG,
+    DH_AMBIENT_HUMIDITY,
+    DH_FILTER_RUNTIME,
     HP_HEATER_TEMPERATURE_TARGET,
     HP_HOT_WATER_TANK_TEMPERATURE,
     HP_HOT_WATER_TEMPERATURE_TARGET,
@@ -92,6 +94,22 @@ SENSORS = {
         entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         value_fn=lambda d: _scaled_param(d, HP_HEATER_TEMPERATURE_TARGET),
+    ),
+    DH_AMBIENT_HUMIDITY: AuxSensorEntityDescription(
+        key=DH_AMBIENT_HUMIDITY,
+        translation_key="ambient_humidity",
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        value_fn=lambda d: d.get("params", {}).get(DH_AMBIENT_HUMIDITY),
+    ),
+    DH_FILTER_RUNTIME: AuxSensorEntityDescription(
+        key=DH_FILTER_RUNTIME,
+        translation_key="filter_usage",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=PERCENTAGE,
+        value_fn=lambda d: d.get("params", {}).get(DH_FILTER_RUNTIME),
     ),
     AUX_ERROR_FLAG: AuxSensorEntityDescription(
         key=AUX_ERROR_FLAG,

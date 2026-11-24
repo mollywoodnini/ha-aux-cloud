@@ -15,7 +15,9 @@ from homeassistant.helpers.typing import ConfigType
 
 from .api import AuxCloudClient
 from .const import (
+    BACKEND_DNA,
     CONF_ACCOUNT_ID,
+    CONF_BACKEND,
     CONF_FAMILIES,
     CONF_PHONE_NUMBER,
     CONF_SELECTED_DEVICES,
@@ -27,7 +29,7 @@ from .coordinator import (
     AuxCloudConfigEntry,
     AuxCloudCoordinator,
 )
-from .dna import DnaClient
+from .dna import create_cloud_client
 from .identifiers import account_unique_id_from_user_id
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,8 +69,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: AuxCloudConfigEntry) -> bool:
     """Set up AUX Cloud from a config entry."""
     region = entry.data.get(CONF_REGION, "eu")
-    api: AuxCloudClient = DnaClient(
-        region=region, session=async_get_clientsession(hass)
+    backend = entry.data.get(CONF_BACKEND, BACKEND_DNA)
+    api: AuxCloudClient = create_cloud_client(
+        backend, region, async_get_clientsession(hass)
     )
     email = entry.data.get(CONF_EMAIL)
     phone_number = entry.data.get(CONF_PHONE_NUMBER)
@@ -90,7 +93,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: AuxCloudConfigEntry) -> 
             entry,
             data={
                 **entry.data,
-                CONF_ACCOUNT_ID: account_unique_id_from_user_id(region, api.user_id),
+                CONF_ACCOUNT_ID: account_unique_id_from_user_id(
+                    region, api.user_id, backend
+                ),
             },
         )
 

@@ -44,6 +44,9 @@
           "quiet_1": "mdi:volume-off",
           "quiet_2": "mdi:volume-mute"
         }
+      },
+      "aux_select_dehumidifier_fan": {
+        "default": "mdi:fan"
       }
     },
     "sensor": {
@@ -61,6 +64,9 @@
       },
       "water_tank_temperature": {
         "default": "mdi:thermometer-water"
+      },
+      "filter_usage": {
+        "default": "mdi:air-filter"
       }
     },
     "switch": {
@@ -110,6 +116,19 @@
     "water_heater": {
       "aux_water": {
         "default": "mdi:water-boiler"
+      }
+    },
+    "humidifier": {
+      "aux_dehumidifier": {
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "continuous": "mdi:water-sync",
+              "manual": "mdi:water-percent",
+              "drying": "mdi:tumble-dryer"
+            }
+          }
+        }
       }
     }
   }

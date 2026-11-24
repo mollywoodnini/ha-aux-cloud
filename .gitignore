@@ -14,3 +14,6 @@ pipfile.lock
 custom_components/aux_cloud/config/
 
 .opencode/node_modules
+*.xapk
+*.apk
+.coverage

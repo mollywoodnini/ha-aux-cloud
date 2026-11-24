@@ -18,13 +18,16 @@ from .api import (
 )
 from .api.models import AuxCredentials
 from .const import (
+    BACKEND_AUX_HOME,
+    BACKEND_DNA,
     CONF_ACCOUNT_ID,
+    CONF_BACKEND,
     CONF_FAMILIES,
     CONF_PHONE_NUMBER,
     CONF_SELECTED_DEVICES,
     DOMAIN,
 )
-from .dna import DnaClient
+from .dna import create_cloud_client
 from .identifiers import account_unique_id_from_user_id
 
 if TYPE_CHECKING:
@@ -64,12 +67,15 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
         """Initialize flow state."""
         self._target_entry: ConfigEntry | None = None
         self._mode = "create"
+        self._backend = BACKEND_DNA
 
     async def async_step_user(
         self, _user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Offer email first while retaining phone login."""
-        return self.async_show_menu(step_id="user", menu_options=["email", "phone"])
+        return self.async_show_menu(
+            step_id="user", menu_options=["email", "phone", "aux_home"]
+        )
 
     async def async_step_email(
         self, user_input: dict[str, Any] | None = None
@@ -82,6 +88,13 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Configure an account using a phone number."""
         return await self._async_account_step("phone", user_input)
+
+    async def async_step_aux_home(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure an AUX HOME app account (Europe)."""
+        self._backend = BACKEND_AUX_HOME
+        return await self._async_account_step("email", user_input, step_id="aux_home")
 
     async def async_step_import(self, import_info: dict[str, Any]) -> ConfigFlowResult:
         """Import legacy configuration.yaml credentials."""
@@ -99,6 +112,7 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(self, _entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Start credential renewal for an existing entry."""
         self._target_entry = self._get_reauth_entry()
+        self._backend = self._target_entry.data.get(CONF_BACKEND, BACKEND_DNA)
         self._mode = "reauth"
         return await self.async_step_reauth_confirm()
 
@@ -116,6 +130,7 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
         """Update region or credentials while retaining the same account."""
         if self._target_entry is None:
             self._target_entry = self._get_reconfigure_entry()
+            self._backend = self._target_entry.data.get(CONF_BACKEND, BACKEND_DNA)
             self._mode = "reconfigure"
             user_input = None
         return await self._async_account_step(
@@ -139,7 +154,11 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
 
         normalized = dict(user_input)
         if credential_type == "email":
-            normalized[CONF_EMAIL] = normalized[CONF_EMAIL].strip().lower()
+            email = normalized[CONF_EMAIL].strip()
+            # AUX HOME matches the registered email byte for byte, so keep its case.
+            normalized[CONF_EMAIL] = (
+                email if self._backend == BACKEND_AUX_HOME else email.lower()
+            )
         else:
             normalized[CONF_PHONE_NUMBER] = _normalize_phone_number(
                 normalized[CONF_PHONE_NUMBER]
@@ -174,26 +193,20 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Authenticate, enforce account identity, and create/update the entry."""
         region = user_input.get(CONF_REGION, "eu")
-        api: AuxCloudClient = DnaClient(
-            region=region,
-            session=async_get_clientsession(self.hass),
+        api: AuxCloudClient = create_cloud_client(
+            self._backend, region, async_get_clientsession(self.hass)
         )
-        if credential_type == "phone":
-            credentials = AuxCredentials.phone(
-                user_input[CONF_PHONE_NUMBER], user_input[CONF_PASSWORD]
-            )
-        else:
-            credentials = AuxCredentials.email(
-                user_input[CONF_EMAIL], user_input[CONF_PASSWORD]
-            )
-        await api.login(credentials)
+        await api.login(self._credentials(credential_type, user_input))
 
         if api.user_id is None:  # Defensive: login validates this invariant.
             return self.async_abort(reason="unknown")
-        account_id = account_unique_id_from_user_id(region, api.user_id)
+        account_id = account_unique_id_from_user_id(region, api.user_id, self._backend)
 
         data = _clean_entry_data(user_input)
         data[CONF_ACCOUNT_ID] = account_id
+        if self._backend == BACKEND_AUX_HOME:
+            data[CONF_BACKEND] = BACKEND_AUX_HOME
+            data[CONF_REGION] = region
 
         if self._target_entry is None:
             await self.async_set_unique_id(account_id)
@@ -218,6 +231,20 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
                 else "reconfigure_successful"
             ),
         )
+
+    def _credentials(
+        self, credential_type: str, user_input: dict[str, Any]
+    ) -> AuxCredentials:
+        """Build the credentials for the selected backend."""
+        if credential_type == "phone":
+            return AuxCredentials.phone(
+                user_input[CONF_PHONE_NUMBER], user_input[CONF_PASSWORD]
+            )
+        if self._backend == BACKEND_AUX_HOME:
+            return AuxCredentials.exact_email(
+                user_input[CONF_EMAIL], user_input[CONF_PASSWORD]
+            )
+        return AuxCredentials.email(user_input[CONF_EMAIL], user_input[CONF_PASSWORD])
 
     def _same_target_account(self, account_id: str, new_data: dict[str, Any]) -> bool:
         """Return whether validated credentials belong to the configured account."""
@@ -254,37 +281,38 @@ class AuxCloudFlowHandler(ConfigFlow, domain=DOMAIN):
         defaults.update(submitted or {})
         credential_key = CONF_PHONE_NUMBER if credential_type == "phone" else CONF_EMAIL
         credential_default = defaults.get(credential_key, "")
-        return vol.Schema(
-            {
-                vol.Required(
-                    credential_key, default=credential_default
-                ): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=(
-                            selector.TextSelectorType.TEL
-                            if credential_type == "phone"
-                            else selector.TextSelectorType.EMAIL
-                        ),
-                        autocomplete=("tel" if credential_type == "phone" else "email"),
-                    )
-                ),
-                vol.Required(CONF_PASSWORD): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.PASSWORD,
-                        autocomplete="current-password",
-                    )
-                ),
-                vol.Required(
-                    CONF_REGION, default=defaults.get(CONF_REGION, "eu")
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=REGION_OPTIONS,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                        translation_key="region",
-                    )
-                ),
-            }
-        )
+        schema: dict[Any, Any] = {
+            vol.Required(
+                credential_key, default=credential_default
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(
+                    type=(
+                        selector.TextSelectorType.TEL
+                        if credential_type == "phone"
+                        else selector.TextSelectorType.EMAIL
+                    ),
+                    autocomplete=("tel" if credential_type == "phone" else "email"),
+                )
+            ),
+            vol.Required(CONF_PASSWORD): selector.TextSelector(
+                selector.TextSelectorConfig(
+                    type=selector.TextSelectorType.PASSWORD,
+                    autocomplete="current-password",
+                )
+            ),
+        }
+        if self._backend != BACKEND_AUX_HOME:
+            # AUX HOME is Europe-only for now, so it has no region choice.
+            schema[
+                vol.Required(CONF_REGION, default=defaults.get(CONF_REGION, "eu"))
+            ] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=REGION_OPTIONS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="region",
+                )
+            )
+        return vol.Schema(schema)
 
 
 def _entry_title(data: dict[str, Any]) -> str:
@@ -295,4 +323,5 @@ def _entry_title(data: dict[str, Any]) -> str:
     else:
         phone = data.get(CONF_PHONE_NUMBER, "")
         account = f"••••{phone[-4:]}" if phone else "phone"
-    return f"AUX Cloud · {account} · {region}"
+    name = "AUX HOME" if data.get(CONF_BACKEND) == BACKEND_AUX_HOME else "AUX Cloud"
+    return f"{name} · {account} · {region}"

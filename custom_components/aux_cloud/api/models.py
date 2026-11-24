@@ -24,6 +24,15 @@ class AuxCredentials:
         return cls("email", email.strip().lower(), password)
 
     @classmethod
+    def exact_email(cls, email: str, password: str) -> AuxCredentials:
+        """Build email credentials that keep the registered letter case.
+
+        AUX HOME compares the encrypted account value byte for byte, so the email
+        must be sent exactly as it was registered.
+        """
+        return cls("email", email.strip(), password)
+
+    @classmethod
     def phone(cls, phone_number: str, password: str) -> AuxCredentials:
         """Build normalized phone credentials."""
         return cls("phone", phone_number, password)

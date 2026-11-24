@@ -31,7 +31,8 @@
         "description": "Wybierz sposób logowania. Adres e-mail jest zalecany dla kont europejskich.",
         "menu_options": {
           "email": "Adres e-mail",
-          "phone": "Numer telefonu"
+          "phone": "Numer telefonu",
+          "aux_home": "Aplikacja AUX HOME (Europa)"
         }
       },
       "email": {
@@ -50,6 +51,14 @@
           "phone_number": "Numer telefonu",
           "password": "Hasło",
           "region": "Region"
+        }
+      },
+      "aux_home": {
+        "title": "Zaloguj się do AUX HOME",
+        "description": "Użyj adresu e-mail i hasła konta z aplikacji AUX HOME. Obecnie obsługiwana jest tylko Europa. Wpisz adres dokładnie tak, jak został zarejestrowany, z uwzględnieniem wielkich liter.",
+        "data": {
+          "email": "Adres e-mail",
+          "password": "Hasło"
         }
       },
       "reauth_confirm": {
@@ -126,6 +135,12 @@
       },
       "ac_temperature": {
         "name": "Temperatura klimatyzatora"
+      },
+      "ambient_humidity": {
+        "name": "Wilgotność otoczenia"
+      },
+      "filter_usage": {
+        "name": "Zużycie filtra"
       }
     },
     "water_heater": {
@@ -168,6 +183,14 @@
           "level_7": "Ustawienie 7",
           "level_8": "Ustawienie 8",
           "user_defined": "Ustawione przez użytkownika"
+        }
+      },
+      "aux_select_dehumidifier_fan": {
+        "name": "Prędkość wentylatora",
+        "state": {
+          "low": "Niska",
+          "medium": "Średnia",
+          "high": "Wysoka"
         }
       }
     },
@@ -218,6 +241,20 @@
     "number": {
       "aux_power_limit_percentage": {
         "name": "Procent ograniczenia mocy"
+      }
+    },
+    "humidifier": {
+      "aux_dehumidifier": {
+        "state_attributes": {
+          "mode": {
+            "name": "Tryb",
+            "state": {
+              "continuous": "Ciągły",
+              "manual": "Ręczny",
+              "drying": "Suszenie"
+            }
+          }
+        }
       }
     }
   }

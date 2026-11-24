@@ -8,12 +8,20 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN
+from .const import BACKEND_DNA, DOMAIN
 
 
-def account_unique_id_from_user_id(region: str, user_id: str) -> str:
-    """Return the stable account ID used for authenticated entries."""
-    return f"{(region or 'eu').strip().lower()}:user:{user_id}"
+def account_unique_id_from_user_id(
+    region: str, user_id: str, backend: str = BACKEND_DNA
+) -> str:
+    """Return the stable account ID used for authenticated entries.
+
+    DNA IDs keep their released ``<region>:user:<id>`` shape; AUX HOME accounts
+    are namespaced so the two clouds can never collide.
+    """
+    region_part = (region or "eu").strip().lower()
+    prefix = f"{backend}:" if backend != BACKEND_DNA else ""
+    return f"{prefix}{region_part}:user:{user_id}"
 
 
 def legacy_entity_unique_id(endpoint_id: str, entity_key: str) -> str:

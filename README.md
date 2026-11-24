@@ -1,6 +1,6 @@
 # AUX Cloud Integration for Home Assistant
 
-Unofficial Home Assistant integration for AUX Cloud appliances, including AUX air conditioners and AUX heat pumps. AUX Cloud is based on the BroadLink cloud platform, so this integration communicates with the cloud service used by the mobile app instead of replacing the device Wi-Fi module.
+Unofficial Home Assistant integration for AUX Cloud appliances, including AUX air conditioners, AUX heat pumps and (via the AUX HOME app) AUX dehumidifiers. AUX Cloud is based on the BroadLink cloud platform, so this integration communicates with the cloud service used by the mobile app instead of replacing the device Wi-Fi module.
 
 The implementation is based on BroadLink public SDK documentation and reverse engineering of the AUX/AC Freedom Android app.
 
@@ -16,6 +16,7 @@ The implementation is based on BroadLink public SDK documentation and reverse en
 - Support for personal and shared AUX Cloud devices.
 - Dynamic device discovery: devices added in AUX Cloud appear without reloading Home Assistant.
 - Product profiles for AUX air conditioners and heat pumps, including v3 heat-pump quirks.
+- AUX HOME app accounts (Europe) with an AUX dehumidifier profile.
 - Localized config, entity, and exception text in English, Polish, and Greek.
 
 ## Supported Entities
@@ -25,6 +26,8 @@ Audited product profiles define which entities exist and which parameters are sa
 - `climate`
   - AUX air conditioner
   - AUX heat-pump central heating
+- `humidifier`
+  - AUX HOME dehumidifier (power, target humidity 30-80 %, modes continuous / manual / drying)
 - `water_heater`
   - Heat-pump domestic hot water
 - `sensor`
@@ -33,6 +36,7 @@ Audited product profiles define which entities exist and which parameters are sa
   - Hot water target temperature
   - Hot water tank temperature
   - AUX error flag
+  - Ambient humidity and filter usage (dehumidifier)
 - `switch`
   - Power controls
   - Eco mode
@@ -46,9 +50,11 @@ Audited product profiles define which entities exist and which parameters are sa
   - Sleep mode
   - Screen display
   - Power limit
+  - Child lock (dehumidifier)
 - `select`
   - Quiet mode
   - Automatic water temperature
+  - Fan speed (dehumidifier: low / medium / high)
 - `number`
   - Power limit percentage
 
@@ -64,6 +70,16 @@ HTTP is still used for:
 - Slow degraded polling while websocket push is unhealthy.
 
 When websocket health is restored, degraded polling is disabled again. The integration keeps `iot_class` as `cloud_push` because normal operation is push-based.
+
+## AUX HOME app (dehumidifier)
+
+AUX HOME is a separate cloud from AC Freedom. Choose **AUX HOME app (Europe)** when adding the integration and sign in with the email and password of your AUX HOME account.
+
+- Enter the email **exactly as it was registered, including capital letters**. AUX HOME compares it byte for byte, so `La@x.com` and `la@x.com` are different accounts. The integration never lower-cases AUX HOME emails.
+- Only the Europe server is supported for now.
+- AUX HOME has no push channel in this integration. Device state is polled every 30 seconds and a full device scan runs every 30 minutes.
+- Entities are defined by the product profile (product key `00010007`). Controls follow what the AUX HOME app offers: power, mode, target humidity (30-80 %, steps of 5), fan speed, and child lock. Drying mode is always sent together with the high fan speed, as the app does.
+- Login, state queries and commands were reverse engineered from the AUX HOME app traffic; the cloud offers no public API, so behavior can change without notice.
 
 ## Installation
 
@@ -199,6 +215,7 @@ Known product IDs:
   low/medium/high fan controls)
 - Air-conditioner sub-device: `c9100100` (limited safe parameter set)
 - Heat pumps: `c3aa0000`
+- AUX HOME dehumidifier: product key `00010007` (model `m_00010007_1`)
 
 The product profiles expose only controls verified from the AC Freedom app.
 Unsupported modes, fan values, swing axes, and parameters are rejected before a

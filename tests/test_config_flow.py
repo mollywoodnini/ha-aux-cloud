@@ -37,14 +37,18 @@ def _patch_cloud(monkeypatch) -> None:
     FakeDnaClient.instances.clear()
     FakeDnaClient.user_id = "cloud-user"
     FakeDnaClient.login_error = None
-    monkeypatch.setattr(config_flow_module, "DnaClient", FakeDnaClient)
+    monkeypatch.setattr(
+        config_flow_module,
+        "create_cloud_client",
+        lambda _backend, region, session: FakeDnaClient(region=region, session=session),
+    )
 
 
 async def _login_form(hass, method: str):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
-    assert result["menu_options"] == ["email", "phone"]
+    assert result["menu_options"] == ["email", "phone", "aux_home"]
     return await hass.config_entries.flow.async_configure(
         result["flow_id"], {"next_step_id": method}
     )
@@ -151,3 +155,33 @@ async def test_reauth_and_reconfigure_preserve_entry_identity(hass, monkeypatch)
     )
     assert result["reason"] == "wrong_account"
     assert entry.data[CONF_EMAIL] == "user@example.com"
+
+
+async def test_aux_home_flow_keeps_email_case_and_namespaces_the_account(
+    hass, monkeypatch
+):
+    """AUX HOME accounts skip lower-casing and store their backend."""
+    _patch_cloud(monkeypatch)
+    FakeDnaClient.user_id = "home-user"
+    result = await _login_form(hass, "aux_home")
+    assert result["step_id"] == "aux_home"
+    # Region is fixed to Europe, so the form has no region field.
+    assert CONF_REGION not in result["data_schema"].schema
+
+    created = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_EMAIL: " Mixed.Case@Example.com ", CONF_PASSWORD: "secret"},
+    )
+
+    assert created["type"] == "create_entry"
+    assert created["title"] == "AUX HOME · Mixed.Case@Example.com · EU"
+    assert created["data"] == {
+        CONF_EMAIL: "Mixed.Case@Example.com",
+        CONF_PASSWORD: "secret",
+        CONF_REGION: "eu",
+        CONF_ACCOUNT_ID: "aux_home:eu:user:home-user",
+        "backend": "aux_home",
+    }
+    assert FakeDnaClient.instances[-1].login_calls == [
+        AuxCredentials.exact_email("Mixed.Case@Example.com", "secret")
+    ]

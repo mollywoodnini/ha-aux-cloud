@@ -12,6 +12,10 @@ from .api.models import AuxDevice
 from .const import DOMAIN
 from .coordinator import AuxCloudConfigEntry, AuxCloudCoordinator
 from .devices import (
+    DH_FAN_HIGH,
+    DH_FAN_LOW,
+    DH_FAN_MEDIUM,
+    DH_FAN_SPEED,
     HP_HEATER_AUTO_WATER_TEMP,
     HP_QUIET_MODE,
 )
@@ -42,6 +46,15 @@ def _select_description(
 
 
 SELECTS = (
+    _select_description(
+        key=DH_FAN_SPEED,
+        translation_key="aux_select_dehumidifier_fan",
+        options=(
+            ("low", DH_FAN_LOW),
+            ("medium", DH_FAN_MEDIUM),
+            ("high", DH_FAN_HIGH),
+        ),
+    ),
     _select_description(
         key=HP_QUIET_MODE,
         translation_key="aux_select_qtmode",

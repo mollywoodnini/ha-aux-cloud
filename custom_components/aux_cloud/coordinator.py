@@ -26,6 +26,8 @@ from .api import (
 )
 from .api.models import AuxCredentials, AuxDevice, DeviceUpdate
 from .const import (
+    BACKEND_AUX_HOME,
+    CONF_BACKEND,
     CONF_PHONE_NUMBER,
     DOMAIN,
     TOPOLOGY_SCAN_INTERVAL_MINUTES,
@@ -269,7 +271,11 @@ class AuxCloudCoordinator(DataUpdateCoordinator[CoordinatorData]):
             email = entry_data.get(CONF_EMAIL)
             if not email:
                 raise AuxAuthError("Missing AUX Cloud account credentials")
-            credentials = AuxCredentials.email(email, password)
+            credentials = (
+                AuxCredentials.exact_email(email, password)
+                if entry_data.get(CONF_BACKEND) == BACKEND_AUX_HOME
+                else AuxCredentials.email(email, password)
+            )
         await self.api.login(credentials)
 
     def _registered_endpoint_ids(self) -> set[str]:

@@ -20,6 +20,7 @@ from .devices import (
     AC_SCREEN_DISPLAY,
     AC_SLEEP,
     AUX_ECOMODE,
+    DH_CHILD_LOCK,
     HP_HEATER_POWER,
     HP_WATER_FAST_HOTWATER,
     HP_WATER_POWER,
@@ -59,6 +60,10 @@ SWITCHES = (
     ),
     SwitchEntityDescription(
         key=AC_CHILD_LOCK,
+        translation_key="aux_child_lock",
+    ),
+    SwitchEntityDescription(
+        key=DH_CHILD_LOCK,
         translation_key="aux_child_lock",
     ),
     SwitchEntityDescription(

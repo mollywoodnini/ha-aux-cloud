@@ -109,6 +109,48 @@ HP_WATER_FAST_HOTWATER_OFF = {HP_WATER_FAST_HOTWATER: 0}
 
 HEAT_PUMP_PRODUCT_IDS = ("000000000000000000000000c3aa0000",)
 
+# AUX HOME dehumidifier (product key 00010007). Parameter names and value meanings
+# were captured from the AUX HOME app and its dehumidifier control page.
+DH_POWER = "onoff"
+DH_MODE = "mode"
+DH_FAN_SPEED = "wind_speed"
+DH_TARGET_HUMIDITY = "humidity"
+DH_CHILD_LOCK = "child_lock"
+DH_AMBIENT_HUMIDITY = "environment_humidity"
+# Derived from the nested cloud ``air_filter`` object.
+DH_FILTER_RUNTIME = "filter_runtime_percentage"
+DH_FILTER_NEEDS_CLEANING = "filter_needs_cleaning"
+# Derived from the nested cloud ``fault_codes`` object.
+DH_FAULT_CODES = "fault_codes"
+
+DH_MODE_CONTINUOUS = 1
+DH_MODE_MANUAL = 3
+DH_MODE_DRYING = 5
+DH_FAN_LOW = 1
+DH_FAN_MEDIUM = 3
+DH_FAN_HIGH = 5
+# Drying mode is always sent together with the high fan speed by the app.
+DH_DRYING_FAN_SPEED = DH_FAN_HIGH
+DH_MIN_HUMIDITY = 30
+DH_MAX_HUMIDITY = 80
+DH_HUMIDITY_STEP = 5
+
+DEHUMIDIFIER_PRODUCT_IDS = ("00010007",)
+# Cloud tags requested by the app's commonQuery call for this product.
+DH_QUERY_TAGS = (
+    "onoff",
+    "mode",
+    "wind_speed",
+    "humidity",
+    "child_lock",
+    "pump",
+    "healthy",
+    "air_filter",
+    "environment_humidity",
+    "fault_codes",
+    "support_function",
+)
+
 STANDARD_AC_PRODUCT_IDS = (
     "000000000000000000000000c0620000",
     "0000000000000000000000002a4e0000",
@@ -156,6 +198,27 @@ AC_PARAMS = (
     "tenelec",
 )
 AC_SPECIAL_PARAMS = (AC_MODE_SPECIAL,)
+
+DH_PARAMS = (
+    DH_POWER,
+    DH_MODE,
+    DH_FAN_SPEED,
+    DH_TARGET_HUMIDITY,
+    DH_CHILD_LOCK,
+    DH_AMBIENT_HUMIDITY,
+    DH_FILTER_RUNTIME,
+    DH_FILTER_NEEDS_CLEANING,
+    DH_FAULT_CODES,
+)
+DH_WRITABLE_PARAMS = (
+    DH_POWER,
+    DH_MODE,
+    DH_FAN_SPEED,
+    DH_TARGET_HUMIDITY,
+    DH_CHILD_LOCK,
+)
+DH_MODES = (DH_MODE_CONTINUOUS, DH_MODE_MANUAL, DH_MODE_DRYING)
+DH_FAN_SPEEDS = (DH_FAN_LOW, DH_FAN_MEDIUM, DH_FAN_HIGH)
 
 HP_PARAMS = (
     "ac_errcode1",
@@ -242,6 +305,7 @@ class DeviceType(StrEnum):
 
     AIR_CONDITIONER = "ac"
     HEAT_PUMP = "heat_pump"
+    DEHUMIDIFIER = "dehumidifier"
     UNKNOWN = "unknown"
 
 
@@ -260,10 +324,15 @@ class ProductProfile:
     horizontal_swing: bool = False
     vertical_swing: bool = False
     half_degree_via_flag: bool = False
+    query_tags: tuple[str, ...] = ()
+    dehumidifier_modes: tuple[int, ...] = ()
+    min_humidity: int = 0
+    max_humidity: int = 0
+    humidity_step: int = 1
 
     def initial_param_queries(self, _device: AuxDevice) -> list[list[str]]:
         """Return HTTP parameter query batches used during device bootstrap."""
-        if self.device_type is DeviceType.UNKNOWN:
+        if self.device_type in (DeviceType.UNKNOWN, DeviceType.DEHUMIDIFIER):
             return []
         if self.device_type is DeviceType.HEAT_PUMP and is_v3_heat_pump(_device):
             return [list(query) for query in V3_HEAT_PUMP_QUERIES]
@@ -300,6 +369,8 @@ class ProductProfile:
                 return param
         if self.device_type is DeviceType.AIR_CONDITIONER:
             return _invalid_ac_command_parameter(self, values)
+        if self.device_type is DeviceType.DEHUMIDIFIER:
+            return _invalid_dehumidifier_command_parameter(self, values)
         return None
 
 
@@ -370,6 +441,19 @@ HEAT_PUMP_PROFILE = ProductProfile(
     device_type=DeviceType.HEAT_PUMP,
     writable_params=HP_WRITABLE_PARAMS,
 )
+DEHUMIDIFIER_PROFILE = ProductProfile(
+    product_ids=DEHUMIDIFIER_PRODUCT_IDS,
+    model_name="AUX Dehumidifier",
+    params=DH_PARAMS,
+    device_type=DeviceType.DEHUMIDIFIER,
+    writable_params=DH_WRITABLE_PARAMS,
+    fan_speeds=DH_FAN_SPEEDS,
+    query_tags=DH_QUERY_TAGS,
+    dehumidifier_modes=DH_MODES,
+    min_humidity=DH_MIN_HUMIDITY,
+    max_humidity=DH_MAX_HUMIDITY,
+    humidity_step=DH_HUMIDITY_STEP,
+)
 DEFAULT_PROFILE = ProductProfile(
     product_ids=(),
     model_name="Unknown",
@@ -384,6 +468,7 @@ PRODUCT_PROFILES = (
     MULTI_SPLIT_AC_PROFILE,
     SUBDEVICE_AC_PROFILE,
     HEAT_PUMP_PROFILE,
+    DEHUMIDIFIER_PROFILE,
 )
 PROFILE_BY_PRODUCT_ID = {
     product_id: profile
@@ -422,6 +507,25 @@ def _invalid_ac_command_parameter(
         return AC_SWING_HORIZONTAL
     if AC_SWING_VERTICAL in values and not profile.vertical_swing:
         return AC_SWING_VERTICAL
+    return None
+
+
+def _invalid_dehumidifier_command_parameter(
+    profile: ProductProfile, values: Mapping[str, Any]
+) -> str | None:
+    """Return the first invalid dehumidifier command value."""
+    mode = values.get(DH_MODE)
+    if mode is not None and mode not in profile.dehumidifier_modes:
+        return DH_MODE
+    fan_speed = values.get(DH_FAN_SPEED)
+    if fan_speed is not None and fan_speed not in profile.fan_speeds:
+        return DH_FAN_SPEED
+    humidity = values.get(DH_TARGET_HUMIDITY)
+    if humidity is not None and not (
+        isinstance(humidity, int)
+        and profile.min_humidity <= humidity <= profile.max_humidity
+    ):
+        return DH_TARGET_HUMIDITY
     return None
 
 

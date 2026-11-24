@@ -31,7 +31,8 @@
         "description": "Choose how you sign in. Email is recommended for European accounts.",
         "menu_options": {
           "email": "Email address",
-          "phone": "Phone number"
+          "phone": "Phone number",
+          "aux_home": "AUX HOME app (Europe)"
         }
       },
       "email": {
@@ -50,6 +51,14 @@
           "phone_number": "Phone number",
           "password": "Password",
           "region": "Region"
+        }
+      },
+      "aux_home": {
+        "title": "Sign in to AUX HOME",
+        "description": "Use the email and password of your AUX HOME app account. Only Europe is supported for now. Enter the email exactly as it was registered, including capital letters.",
+        "data": {
+          "email": "Email address",
+          "password": "Password"
         }
       },
       "reauth_confirm": {
@@ -129,6 +138,12 @@
       },
       "err_flag": {
         "name": "Error Flag"
+      },
+      "ambient_humidity": {
+        "name": "Ambient Humidity"
+      },
+      "filter_usage": {
+        "name": "Filter Usage"
       }
     },
     "water_heater": {
@@ -171,6 +186,14 @@
           "level_7": "Setting 7",
           "level_8": "Setting 8",
           "user_defined": "User Defined"
+        }
+      },
+      "aux_select_dehumidifier_fan": {
+        "name": "Fan Speed",
+        "state": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
         }
       }
     },
@@ -221,6 +244,20 @@
     "number": {
       "aux_power_limit_percentage": {
         "name": "Power Limit Percentage"
+      }
+    },
+    "humidifier": {
+      "aux_dehumidifier": {
+        "state_attributes": {
+          "mode": {
+            "name": "Mode",
+            "state": {
+              "continuous": "Continuous",
+              "manual": "Manual",
+              "drying": "Drying"
+            }
+          }
+        }
       }
     }
   }
