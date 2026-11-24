@@ -1,6 +1,6 @@
 {
   "domain": "aux_cloud",
-  "name": "AUX Cloud",
+  "name": "AUX Cloud + AUX HOME",
   "codeowners": ["@maeek"],
   "config_flow": true,
   "documentation": "https://github.com/maeek/ha-aux-cloud",
@@ -9,6 +9,6 @@
   "issue_tracker": "https://github.com/maeek/ha-aux-cloud/issues",
   "loggers": [],
   "requirements": ["pycryptodome==3.23.0"],
-  "version": "2.0.0",
+  "version": "2.1.0",
   "zeroconf": []
 }
